@@ -4,3 +4,4 @@ cp fish.so ~/.znc/modules/
 To disable encryption on a message prefix your message with "-e "
 
 Decrypted messages are prefixed with "(e) "
+If the module expected an encrypted message, it will prefix with "(d) "

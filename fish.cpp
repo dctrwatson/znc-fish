@@ -388,10 +388,10 @@ public:
 	}
 
 	void FilterIncoming(const CString& sTarget, CNick& Nick, CString& sMessage) {
-		if (sMessage.Left(4) == "+OK " || sMessage.Left(5) == "mcps ") {
-			MCString::iterator it = FindNV(sTarget.AsLower());
+        MCString::iterator it = FindNV(sTarget.AsLower());
 
-			if (it != EndNV()) {
+        if (it != EndNV()) {
+            if (sMessage.Left(4) == "+OK " || sMessage.Left(5) == "mcps ") {
 				if (sMessage.Left(4) == "+OK ") {
 				    sMessage.LeftChomp(4);
 				} else if (sMessage.Left(5) == "mcps ") {
@@ -420,8 +420,10 @@ public:
 				}
 
 				free(cMsg);
-			}
-		}
+			} else {
+                sMessage = "(d) " + sMessage;
+            }
+        }
 	}
 
 	virtual void OnModCommand(const CString& sCommand) {
