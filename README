@@ -1,0 +1,2 @@
+znc-buildmod fish.cpp
+cp fish.so ~/.znc/modules/
