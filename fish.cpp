@@ -269,6 +269,11 @@ public:
 	virtual EModRet OnUserMsg(CString& sTarget, CString& sMessage) {
 		MCString::iterator it = FindNV(sTarget.AsLower());
 
+        if (sMessage.Left(2) == "-e") {
+            sMessage.LeftChomp(3);
+            return CONTINUE;
+        }
+
 		if (it != EndNV()) {
 			CChan* pChan = m_pUser->FindChan(sTarget);
 			if ((pChan) && (pChan->KeepBuffer())) {
@@ -408,7 +413,7 @@ public:
 				}
 
 				char *cMsg = decrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
-				sMessage = CString(cMsg);
+				sMessage = "(e) " + CString(cMsg);
 
 				if (mark_broken_block) {
 					sMessage += "  \002&\002";
