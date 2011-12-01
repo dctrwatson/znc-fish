@@ -1,8 +1,9 @@
-#include "main.h"
-#include "User.h"
-#include "Nick.h"
-#include "Modules.h"
-#include "Chan.h"
+#include <znc/main.h>
+#include <znc/User.h>
+#include <znc/Nick.h>
+#include <znc/Modules.h>
+#include <znc/Chan.h>
+#include <znc/IRCNetwork.h>
 
 #include <string.h>
 using std::pair;
@@ -275,15 +276,15 @@ public:
         }
 
 		if (it != EndNV()) {
-			CChan* pChan = m_pUser->FindChan(sTarget);
+			CChan* pChan = m_pNetwork->FindChan(sTarget);
 			if ((pChan) && (pChan->KeepBuffer())) {
-				pChan->AddBuffer(":" + m_pUser->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage);
+				pChan->AddBuffer(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage);
 			}
 			char * cMsg = encrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
 
 			CString sMsg = "+OK " + CString(cMsg);
 			PutIRC("PRIVMSG " + sTarget + " :" + sMsg);
-			m_pUser->PutUser(":" + m_pUser->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage, NULL, m_pClient);
+			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage, NULL, m_pClient);
 
 			free(cMsg);
 			return HALTCORE;
@@ -296,15 +297,15 @@ public:
 		MCString::iterator it = FindNV(sTarget.AsLower());
 
 		if (it != EndNV()) {
-			CChan* pChan = m_pUser->FindChan(sTarget);
+			CChan* pChan = m_pNetwork->FindChan(sTarget);
 			if ((pChan) && (pChan->KeepBuffer())) {
-				pChan->AddBuffer(":" + m_pUser->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001");
+				pChan->AddBuffer(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001");
 			}
 			char * cMsg = encrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
 
 			CString sMsg = "+OK " + CString(cMsg);
 			PutIRC("PRIVMSG " + sTarget + " :\001ACTION " + sMsg + "\001");
-			m_pUser->PutUser(":" + m_pUser->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001", NULL, m_pClient);
+			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001", NULL, m_pClient);
 
 			free(cMsg);
 			return HALTCORE;
@@ -317,15 +318,15 @@ public:
 		MCString::iterator it = FindNV(sTarget.AsLower());
 
 		if (it != EndNV()) {
-			CChan* pChan = m_pUser->FindChan(sTarget);
+			CChan* pChan = m_pNetwork->FindChan(sTarget);
 			if ((pChan) && (pChan->KeepBuffer())) {
-				pChan->AddBuffer(":" + m_pUser->GetIRCNick().GetNickMask() + " NOTICE " + sTarget + " :" + sMessage);
+				pChan->AddBuffer(":" + m_pNetwork->GetIRCNick().GetNickMask() + " NOTICE " + sTarget + " :" + sMessage);
 			}
 			char * cMsg = encrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
 
 			CString sMsg = "+OK " + CString(cMsg);
 			PutIRC("NOTICE " + sTarget + " :" + sMsg);
-			m_pUser->PutUser(":" + m_pUser->GetIRCNick().GetNickMask() + " NOTICE " + sTarget + " :" + sMessage, NULL, m_pClient);
+			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " NOTICE " + sTarget + " :" + sMessage, NULL, m_pClient);
 
 			free(cMsg);
 			return HALTCORE;
@@ -375,7 +376,7 @@ public:
 
 	virtual EModRet OnRaw(CString& sLine) {
 		if (sLine.WildCmp(":* 332 *") && sLine.Token(1) == "332") {
-			CChan* pChan = m_pUser->FindChan(sLine.Token(3));
+			CChan* pChan = m_pNetwork->FindChan(sLine.Token(3));
 			if (pChan) {
 				CNick Nick(sLine.Token(2));
 				CString sTopic = sLine.Token(4, true);
