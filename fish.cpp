@@ -277,7 +277,7 @@ public:
 
 		if (it != EndNV()) {
 			CChan* pChan = m_pNetwork->FindChan(sTarget);
-			if ((pChan) && (pChan->KeepBuffer())) {
+			if ((pChan) && !(pChan->AutoClearChanBuffer())) {
 				pChan->AddBuffer(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage);
 			}
 			char * cMsg = encrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
@@ -298,7 +298,7 @@ public:
 
 		if (it != EndNV()) {
 			CChan* pChan = m_pNetwork->FindChan(sTarget);
-			if ((pChan) && (pChan->KeepBuffer())) {
+			if ((pChan) && !(pChan->AutoClearChanBuffer())) {
 				pChan->AddBuffer(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001");
 			}
 			char * cMsg = encrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
@@ -319,7 +319,7 @@ public:
 
 		if (it != EndNV()) {
 			CChan* pChan = m_pNetwork->FindChan(sTarget);
-			if ((pChan) && (pChan->KeepBuffer())) {
+			if ((pChan) && !(pChan->AutoClearChanBuffer())) {
 				pChan->AddBuffer(":" + m_pNetwork->GetIRCNick().GetNickMask() + " NOTICE " + sTarget + " :" + sMessage);
 			}
 			char * cMsg = encrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
@@ -656,4 +656,8 @@ void CKeyExchangeTimer::RunJob() {
 		p->DelStaleKeyExchanges(time(NULL));
 }
 
-MODULEDEFS(CFishMod, "FiSH encryption for channel/private messages")
+template<> void TModInfo<CFishMod>(CModInfo& Info) {
+        Info.SetWikiPage("CFishMod");
+}
+
+NETWORKMODULEDEFS(CFishMod, "FiSH encryption for channel/private messages")
