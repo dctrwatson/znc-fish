@@ -7,6 +7,7 @@
 
 #include <string.h>
 using std::pair;
+using std::map;
 
 #include <netinet/in.h>
 
