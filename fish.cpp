@@ -522,7 +522,7 @@ public:
 	void DelStaleKeyExchanges(time_t iTime) {
 		for (map<CString, pair<time_t, CString> >::const_iterator it = m_msKeyExchange.begin(); it != m_msKeyExchange.end(); it++) {
 		    if (iTime - 5 >= it->second.first) {
-			PutModule("Keyexchange with " + it->first + " did expire before completition.");
+			PutModule("Keyexchange with " + it->first + " expired before completion.");
 		        m_msKeyExchange.erase(it->first);
 		    }
 		}
