@@ -415,7 +415,7 @@ public:
 				}
 
 				char *cMsg = decrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
-				sMessage = "(e) " + CString(cMsg);
+				sMessage = CString(cMsg);
 
 				if (mark_broken_block) {
 					sMessage += "  \002&\002";
@@ -423,7 +423,7 @@ public:
 
 				free(cMsg);
 			} else {
-                sMessage = "(d) " + sMessage;
+                sMessage = sMessage;
             }
         }
 	}
