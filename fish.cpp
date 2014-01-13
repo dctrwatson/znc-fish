@@ -227,7 +227,45 @@ public:
 	virtual ~CFishMod() {
 	}
 
-        virtual EModRet OnPrivNotice(CNick& Nick, CString& sMessage) {
+    virtual bool OnLoad(const CString& sArgs, CString& sMessage) {
+		// if we have an 'old version', simply upgrade it
+		MCString::iterator version = FindNV("version");
+
+		// oldest version, before any version numbers!
+		// this upgrades to version 1, which changes our key database
+		// this does /not/ delete the old keys however, so people can go right back to the old version
+		if (version == EndNV()) {
+			if (BeginNV() != EndNV()) {  // if we actually have any keys to convert
+				// need to do this since we're adding to NV, and if we don't it loops forever, processing new entries
+				MCString::iterator it = BeginNV();
+				while (it != EndNV()) {
+					it++;
+				}
+				it--;
+
+				CString LastNV = it->first;
+
+				// now loop over every key and upgrade
+				for (it = BeginNV(); it->first != LastNV; it++) {
+					SetNV("key " + it->first, it->second);
+					PutModule("key for " + it->first + " upgraded");
+				}
+				SetNV("key " + it->first, it->second);
+				PutModule("key for " + it->first + " upgraded");
+
+				PutModule("Upgraded Database to Version 1");
+			}
+
+			SetNV("config prefix_encrypted", "\00312e\003  ");
+			SetNV("config prefix_decrypted", "\00304d\003  ");
+
+			SetNV("version", "1");
+		}
+
+        return true;
+    }
+
+    virtual EModRet OnPrivNotice(CNick& Nick, CString& sMessage) {
 		CString command = sMessage.Token(0);
 		CString sOtherPub_Key = sMessage.Token(1);
 
@@ -238,12 +276,12 @@ public:
 
 		    DH1080_gen(sPriv_Key, sPub_Key);
 		    if (!DH1080_comp(sPriv_Key, sOtherPub_Key, sSecretKey)) {
-			PutModule("Error in DH1080 with " + Nick.GetNick() + ": " + sSecretKey);
-			return CONTINUE;
+				PutModule("Error in DH1080 with " + Nick.GetNick() + ": " + sSecretKey);
+				return CONTINUE;
 		    }
 		    PutModule("Received DH1080 public key from " + Nick.GetNick() + ", sending mine...");
 		    PutIRC("NOTICE " + Nick.GetNick() + " :DH1080_FINISH " + sPub_Key);
-		    SetNV(Nick.GetNick().AsLower(), sSecretKey);
+		    SetNV("key " + Nick.GetNick().AsLower(), sSecretKey);
 		    PutModule("Key for " + Nick.GetNick() + " successfully set.");
 		    return HALT;
 		} else if (command.CaseCmp("DH1080_FINISH") == 0 && !sOtherPub_Key.empty()) {
@@ -252,25 +290,25 @@ public:
 
 		    map<CString, pair<time_t, CString> >::iterator it = m_msKeyExchange.find(Nick.GetNick().AsLower());
 		    if (it == m_msKeyExchange.end()) {
-			PutModule("Received unexpected DH1080_FINISH from " + Nick.GetNick() + ".");
+				PutModule("Received unexpected DH1080_FINISH from " + Nick.GetNick() + ".");
 		    } else {
-			sPriv_Key = it->second.second;
-			if (DH1080_comp(sPriv_Key, sOtherPub_Key, sSecretKey)) {
-				SetNV(Nick.GetNick().AsLower(), sSecretKey);
-				PutModule("Key for " + Nick.GetNick() + " successfully set.");
-				m_msKeyExchange.erase(Nick.GetNick().AsLower());
-			}
+				sPriv_Key = it->second.second;
+				if (DH1080_comp(sPriv_Key, sOtherPub_Key, sSecretKey)) {
+					SetNV("key " + Nick.GetNick().AsLower(), sSecretKey);
+					PutModule("Key for " + Nick.GetNick() + " successfully set.");
+					m_msKeyExchange.erase(Nick.GetNick().AsLower());
+				}
 		    }
 		    return HALT;
 		} else {
 			FilterIncoming(Nick.GetNick(), Nick, sMessage);
 		}
 
-                return CONTINUE;
-        }
+        return CONTINUE;
+    }
 
 	virtual EModRet OnUserMsg(CString& sTarget, CString& sMessage) {
-		MCString::iterator it = FindNV(sTarget.AsLower());
+		MCString::iterator it = FindNV("key " + sTarget.AsLower());
 
         if (sMessage.Left(2) == "-e") {
             sMessage.LeftChomp(3);
@@ -308,7 +346,7 @@ public:
 	}
 
 	virtual EModRet OnUserAction(CString& sTarget, CString& sMessage) {
-		MCString::iterator it = FindNV(sTarget.AsLower());
+		MCString::iterator it = FindNV("key " + sTarget.AsLower());
 
 		if (it != EndNV()) {
 			CChan* pChan = m_pNetwork->FindChan(sTarget);
@@ -341,7 +379,7 @@ public:
 	}
 
 	virtual EModRet OnUserNotice(CString& sTarget, CString& sMessage) {
-		MCString::iterator it = FindNV(sTarget.AsLower());
+		MCString::iterator it = FindNV("key " + sTarget.AsLower());
 
 		if (it != EndNV()) {
 			CChan* pChan = m_pNetwork->FindChan(sTarget);
@@ -376,7 +414,7 @@ public:
 
 	virtual EModRet OnUserTopic(CString& sChannel, CString& sTopic) {
 		if (!sTopic.empty()) {
-			MCString::iterator it = FindNV(sChannel.AsLower());
+			MCString::iterator it = FindNV("key " + sChannel.AsLower());
 			if (it != EndNV()) {
 				char * cTopic = encrypts((char *)it->second.c_str(), (char *)sTopic.c_str());
 				sTopic = "+OK " + CString(cTopic);
@@ -427,7 +465,7 @@ public:
 	}
 
 	void FilterIncoming(const CString& sTarget, CNick& Nick, CString& sMessage) {
-        MCString::iterator it = FindNV(sTarget.AsLower());
+        MCString::iterator it = FindNV("key " + sTarget.AsLower());
 
         if (it != EndNV()) {
             if (sMessage.Left(4) == "+OK " || sMessage.Left(5) == "mcps ") {
@@ -452,7 +490,7 @@ public:
 				}
 
 				char *cMsg = decrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
-				sMessage = "\00312e\003 " + CString(cMsg);  // blue  'e'  for nice, encrypted
+				sMessage = GetNV("config prefix_encrypted") + CString(cMsg);  // blue  'e'  for nice, encrypted
 
 				if (mark_broken_block) {
 					sMessage += "  \002&\002";
@@ -460,7 +498,7 @@ public:
 
 				free(cMsg);
 			} else {
-                sMessage = "\00304d\003 " + sMessage;  // red  'd'  for bad, not encrypted
+                sMessage = GetNV("config prefix_decrypted") + sMessage;  // red  'd'  for bad, not encrypted
             }
         }
 	}
@@ -472,7 +510,7 @@ public:
 			CString sTarget = sCommand.Token(1);
 
 			if (!sTarget.empty()) {
-				if (DelNV(sTarget.AsLower())) {
+				if (DelNV("key " + sTarget.AsLower())) {
 					PutModule("Target [" + sTarget + "] deleted");
 				} else {
 					PutModule("Target [" + sTarget + "] not found");
@@ -485,7 +523,7 @@ public:
 			CString sKey = sCommand.Token(2, true);
 
 			if (!sKey.empty()) {
-				SetNV(sTarget.AsLower(), sKey);
+				SetNV("key " + sTarget.AsLower(), sKey);
 				PutModule("Set encryption key for [" + sTarget + "] to [" + sKey + "]");
 			} else {
 				PutModule("Usage: SetKey <#chan|Nick> <Key>");
@@ -494,7 +532,7 @@ public:
 			CString sTarget = sCommand.Token(1);
 
 			if (!sTarget.empty()) {
-				MCString::iterator it = FindNV(sTarget.AsLower());
+				MCString::iterator it = FindNV("key " + sTarget.AsLower());
 
 				if (it != EndNV()) {
 					PutModule("Target key is " + it->second);
@@ -512,20 +550,40 @@ public:
 				Table.AddColumn("Target");
 				Table.AddColumn("Key");
 
+				// find all our keys and print them out
 				for (MCString::iterator it = BeginNV(); it != EndNV(); it++) {
-					Table.AddRow();
-					Table.SetCell("Target", it->first);
-					Table.SetCell("Key", it->second);
-				}
-
-				if (Table.size()) {
-					unsigned int uTableIdx = 0;
-					CString sLine;
-
-					while (Table.GetLine(uTableIdx++, sLine)) {
-						PutModule(sLine);
+					if (it->first.Left(4) == "key ") {
+						Table.AddRow();
+						Table.SetCell("Target", it->first.LeftChomp_n(4));  // remove "key " from start
+						Table.SetCell("Key", it->second);
 					}
 				}
+
+                if (Table.size()) {
+                        unsigned int uTableIdx = 0;
+                        CString sLine;
+
+                        while (Table.GetLine(uTableIdx++, sLine)) {
+                                PutModule(sLine);
+                        }
+                }
+			}
+		} else if (sCmd.CaseCmp("LISTCONFIG") == 0) {
+			// we would use tables here, but they mangle things like irc colour codes >.>
+			for (MCString::iterator it = BeginNV(); it != EndNV(); it++) {
+				if (it->first.Left(7) == "config ") {
+					PutModule(it->first.LeftChomp_n(7) + " : \"" + it->second + "\"");
+				}
+			}
+		} else if (sCmd.CaseCmp("SETCONFIG") == 0) {
+			CString sName = sCommand.Token(1);
+			CString sValue = sCommand.Token(2, true);
+
+			if (!sValue.empty()) {
+				SetNV("config " + sName.AsLower(), sValue);
+				PutModule("Set config option [" + sName + "] to [" + sValue + "]");
+			} else {
+				PutModule("Usage: SetConfig <Name> <Value>");
 			}
 		} else if (sCmd.CaseCmp("KEYX") == 0) {
 			CString sTarget = sCommand.Token(1);
@@ -535,22 +593,68 @@ public:
 			} else {
 			    map<CString, pair<time_t, CString> >::iterator it = m_msKeyExchange.find(sTarget.AsLower());
 			    if (it != m_msKeyExchange.end()) {
-				PutModule("Keyexchange with " + sTarget + " already in progress.");
+					PutModule("Keyexchange with " + sTarget + " already in progress.");
 			    } else {
-				CString sPriv_Key;
-				CString sPub_Key;
+					CString sPriv_Key;
+					CString sPub_Key;
 
-				DH1080_gen(sPriv_Key, sPub_Key);
-				m_msKeyExchange.insert(make_pair(sTarget.AsLower(), make_pair(time(NULL), sPriv_Key)));
-				PutIRC("NOTICE " + sTarget + " :DH1080_INIT " + sPub_Key);
-				PutModule("Sent my DH1080 public key to " + sTarget + ", waiting for reply ...");
-				if (FindTimer("KeyExchangeTimer") == NULL) {
-				    AddTimer(new CKeyExchangeTimer(this));
-				}
+					DH1080_gen(sPriv_Key, sPub_Key);
+					m_msKeyExchange.insert(make_pair(sTarget.AsLower(), make_pair(time(NULL), sPriv_Key)));
+					PutIRC("NOTICE " + sTarget + " :DH1080_INIT " + sPub_Key);
+					PutModule("Sent my DH1080 public key to " + sTarget + ", waiting for reply ...");
+					if (FindTimer("KeyExchangeTimer") == NULL) {
+					    AddTimer(new CKeyExchangeTimer(this));
+					}
 			    }
 			}
 		} else if (sCmd.CaseCmp("HELP") == 0) {
-			PutModule("Try: SetKey <target> <key>, DelKey <target>, ShowKey <target>, ListKeys, KeyX <target>");
+			CTable Table;
+			Table.AddColumn("Command");
+			Table.AddColumn("Arguments");
+			Table.AddColumn("Description");
+
+			// list all our commands
+			Table.AddRow();
+			Table.SetCell("Command", "SetKey");
+			Table.SetCell("Arguments", "<target> <key>");
+			Table.SetCell("Description", "Sets <target>'s FiSH encryption key");
+
+			Table.AddRow();
+			Table.SetCell("Command", "DelKey");
+			Table.SetCell("Arguments", "<target>");
+			Table.SetCell("Description", "Removes <target>'s FiSH encryption key");
+
+			Table.AddRow();
+			Table.SetCell("Command", "ShowKey");
+			Table.SetCell("Arguments", "<target>");
+			Table.SetCell("Description", "Show the encryption key of <target>, if it has one set");
+
+			Table.AddRow();
+			Table.SetCell("Command", "ListKeys");
+			Table.SetCell("Arguments", "");
+			Table.SetCell("Description", "Print out all of our keys");
+
+			Table.AddRow();
+			Table.SetCell("Command", "SetConfig");
+			Table.SetCell("Arguments", "<name> <value>");
+			Table.SetCell("Description", "Set config option <name> to <value>");
+
+			Table.AddRow();
+			Table.SetCell("Command", "ListConfig");
+			Table.SetCell("Arguments", "");
+			Table.SetCell("Description", "Print out all of our config options");
+
+			Table.AddRow();
+			Table.SetCell("Command", "KeyX");
+			Table.SetCell("Arguments", "<target>");
+			Table.SetCell("Description", "Start a key exchange with <target>");
+
+			Table.AddRow();
+			Table.SetCell("Command", "Help");
+			Table.SetCell("Arguments", "");
+			Table.SetCell("Description", "Display this message");
+
+			PutModule(Table);
 		} else {
 			PutModule("Unknown command, try 'Help'");
 		}
