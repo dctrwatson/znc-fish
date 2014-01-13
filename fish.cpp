@@ -6,6 +6,7 @@
 #include <znc/IRCNetwork.h>
 
 #include <string.h>
+using std::vector;
 using std::pair;
 using std::map;
 
@@ -288,7 +289,19 @@ public:
 			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage, NULL, m_pClient);
 
 			free(cMsg);
-			// return HALTCORE;  // We like seeing these on our other clients, so we'll comment this out
+
+			// relay to other clients
+			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			for (unsigned int a = 0; a < vClients.size(); a++) {
+				CClient* pClient = vClients[a];
+
+				if (pClient != this->GetClient()) {
+					pClient->PutClient(":" + this->GetClient()->GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage);
+				}
+			}
+
+			// stop ZNC from handling message, or else it gets sent unencrypted to target as well
+			return HALTCORE;
 		}
 
 		return CONTINUE;
@@ -309,7 +322,19 @@ public:
 			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001", NULL, m_pClient);
 
 			free(cMsg);
-			// return HALTCORE;  // We like seeing these on our other clients, so we'll comment this out
+
+			// relay to other clients
+			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			for (unsigned int a = 0; a < vClients.size(); a++) {
+				CClient* pClient = vClients[a];
+
+				if (pClient != this->GetClient()) {
+					pClient->PutClient(":" + this->GetClient()->GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001");
+				}
+			}
+
+			// stop ZNC from handling message, or else it gets sent unencrypted to target as well
+			return HALTCORE;
 		}
 
 		return CONTINUE;
@@ -330,7 +355,19 @@ public:
 			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " NOTICE " + sTarget + " :" + sMessage, NULL, m_pClient);
 
 			free(cMsg);
-			// return HALTCORE;  // We like seeing these on our other clients, so we'll comment this out
+
+			// relay to other clients
+			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			for (unsigned int a = 0; a < vClients.size(); a++) {
+				CClient* pClient = vClients[a];
+
+				if (pClient != this->GetClient()) {
+					pClient->PutClient(":" + this->GetClient()->GetNickMask() + " NOTICE " + sTarget + " :" + sMessage);
+				}
+			}
+
+			// stop ZNC from handling message, or else it gets sent unencrypted to target as well
+			return HALTCORE;
 		}
 
 		return CONTINUE;
@@ -415,8 +452,7 @@ public:
 				}
 
 				char *cMsg = decrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
-				// sMessage = "(e) " + CString(cMsg);  // I don't like (e), takes too much space
-				sMessage = CString(cMsg);
+				sMessage = "\00312e\003 " + CString(cMsg);  // blue  'e'  for nice, encrypted
 
 				if (mark_broken_block) {
 					sMessage += "  \002&\002";
@@ -424,7 +460,7 @@ public:
 
 				free(cMsg);
 			} else {
-                sMessage = "(d) " + sMessage;
+                sMessage = "\00304d\003 " + sMessage;  // red  'd'  for bad, not encrypted
             }
         }
 	}
