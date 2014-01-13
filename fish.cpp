@@ -288,7 +288,7 @@ public:
 			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :" + sMessage, NULL, m_pClient);
 
 			free(cMsg);
-			return HALTCORE;
+			// return HALTCORE;  // We like seeing these on our other clients, so we'll comment this out
 		}
 
 		return CONTINUE;
@@ -309,7 +309,7 @@ public:
 			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " PRIVMSG " + sTarget + " :\001ACTION " + sMessage + "\001", NULL, m_pClient);
 
 			free(cMsg);
-			return HALTCORE;
+			// return HALTCORE;  // We like seeing these on our other clients, so we'll comment this out
 		}
 
 		return CONTINUE;
@@ -330,7 +330,7 @@ public:
 			m_pUser->PutUser(":" + m_pNetwork->GetIRCNick().GetNickMask() + " NOTICE " + sTarget + " :" + sMessage, NULL, m_pClient);
 
 			free(cMsg);
-			return HALTCORE;
+			// return HALTCORE;  // We like seeing these on our other clients, so we'll comment this out
 		}
 
 		return CONTINUE;
@@ -415,7 +415,8 @@ public:
 				}
 
 				char *cMsg = decrypts((char *)it->second.c_str(), (char *)sMessage.c_str());
-				sMessage = "(e) " + CString(cMsg);
+				// sMessage = "(e) " + CString(cMsg);  // I don't like (e), takes too much space
+				sMessage = CString(cMsg);
 
 				if (mark_broken_block) {
 					sMessage += "  \002&\002";
