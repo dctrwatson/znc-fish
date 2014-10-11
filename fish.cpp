@@ -329,7 +329,8 @@ public:
 			free(cMsg);
 
 			// relay to other clients
-			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			//vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			const vector<CClient*>& vClients = this->m_pNetwork->GetClients();
 			for (unsigned int a = 0; a < vClients.size(); a++) {
 				CClient* pClient = vClients[a];
 
@@ -362,7 +363,8 @@ public:
 			free(cMsg);
 
 			// relay to other clients
-			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			//vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			const vector<CClient*>& vClients = this->m_pNetwork->GetClients();
 			for (unsigned int a = 0; a < vClients.size(); a++) {
 				CClient* pClient = vClients[a];
 
@@ -395,7 +397,8 @@ public:
 			free(cMsg);
 
 			// relay to other clients
-			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			//vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			const vector<CClient*>& vClients = this->m_pNetwork->GetClients();
 			for (unsigned int a = 0; a < vClients.size(); a++) {
 				CClient* pClient = vClients[a];
 
