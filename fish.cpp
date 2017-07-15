@@ -329,7 +329,7 @@ public:
 			free(cMsg);
 
 			// relay to other clients
-			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+                        const vector<CClient*>& vClients = this->m_pNetwork->GetClients();
 			for (unsigned int a = 0; a < vClients.size(); a++) {
 				CClient* pClient = vClients[a];
 
@@ -362,7 +362,7 @@ public:
 			free(cMsg);
 
 			// relay to other clients
-			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			const vector<CClient*>& vClients = this->m_pNetwork->GetClients();
 			for (unsigned int a = 0; a < vClients.size(); a++) {
 				CClient* pClient = vClients[a];
 
@@ -395,7 +395,7 @@ public:
 			free(cMsg);
 
 			// relay to other clients
-			vector<CClient*>& vClients = this->m_pNetwork->GetClients();
+			const vector<CClient*>& vClients = this->m_pNetwork->GetClients();
 			for (unsigned int a = 0; a < vClients.size(); a++) {
 				CClient* pClient = vClients[a];
 
@@ -578,10 +578,14 @@ public:
 		} else if (sCmd.CaseCmp("SETCONFIG") == 0) {
 			CString sName = sCommand.Token(1);
 			CString sValue = sCommand.Token(2, true);
-
-			if (!sValue.empty()) {
-				SetNV("config " + sName.AsLower(), sValue);
-				PutModule("Set config option [" + sName + "] to [" + sValue + "]");
+			if (!sName.empty()) {
+				if (!sValue.empty()) {
+					SetNV("config " + sName.AsLower(), sValue);
+					PutModule("Set config option [" + sName + "] to [" + sValue + "]");
+				} else {
+					SetNV("config " + sName.AsLower(), "");
+					PutModule("Set config option [" + sName + "] to nothing (disabled)");
+				}
 			} else {
 				PutModule("Usage: SetConfig <Name> <Value>");
 			}
@@ -637,7 +641,7 @@ public:
 			Table.AddRow();
 			Table.SetCell("Command", "SetConfig");
 			Table.SetCell("Arguments", "<name> <value>");
-			Table.SetCell("Description", "Set config option <name> to <value>");
+			Table.SetCell("Description", "Set config option <name> to <value>. Set option to empty if no <value> is specified");
 
 			Table.AddRow();
 			Table.SetCell("Command", "ListConfig");
