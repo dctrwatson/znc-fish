@@ -36,6 +36,11 @@ To change the prefixes:
     /msg *fish SetConfig prefix_encrypted (+)
     /msg *fish SetConfig prefix_decrypted (-)
 
+To remove the prefixes:
+
+    /msg *fish SetConfig prefix_encrypted
+    /msg *fish SetConfig prefix_decrypted
+
 ## Commands
 
 * `Help`
